@@ -6,11 +6,11 @@ exec_path = $(shell go env GOROOT)/misc/wasm/wasm_exec.js
 
 .ONESHELL:
 build:;
-	@go build -o ./web//worker/app.wasm ./main.go
-	@cp ${exec_path} ./web/worker
+	@go build -o ./demo//worker/app.wasm ./main.go
+	@cp ${exec_path} ./demo/worker
 	
 
 .ONESHELL:
 build-tiny:
-	@tinygo build -o ./web//worker/app.wasm -target wasm main.go
-	@cp ${tiny_exec_path} ./web/worker
+	@tinygo build -o ./demo//worker/app.wasm -target wasm main.go
+	@cp ${tiny_exec_path} ./demo/worker
