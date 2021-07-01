@@ -4,9 +4,9 @@ importScripts("wasm_exec.js");
   const go = new Go()
   const { instance } = await WebAssembly.instantiateStreaming(fetch("app.wasm"), go.importObject)
   go.run(instance)
-  global.addEventListener("message", function ({ data = {} }) {
+  global.addEventListener("message",async function ({ data = {} }) {
     const { type, message } = data;
-    global.postMessage({
+   await global.postMessage({
       type: type,
       message: (global[type] || function () {
         return
