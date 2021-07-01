@@ -2,18 +2,19 @@ package app
 
 import (
 	"bytes"
+	"fmt"
 	"syscall/js"
 )
 
-func getBuffer(args []js.Value) []byte {
+func getBuffer(args []js.Value) (buffer []byte) {
 	uint8Array := js.Global().Get("Uint8Array")
 	if len(args) < 1 || !args[0].InstanceOf(uint8Array) {
 		return nil
 	}
+	fmt.Println("Receiving data........")
 	//todo 消耗大量时间
-	buffer := make([]byte, args[0].Get("length").Int())
+	buffer = make([]byte, args[0].Get("length").Int())
 	js.CopyBytesToGo(buffer, args[0])
-
 	return buffer
 }
 

@@ -7,14 +7,17 @@ import (
 )
 
 func ImageRotate() js.Func {
+	var buffer []byte
 	return js.FuncOf(func(this js.Value, args []js.Value) interface{} {
-		direction := 1
 		if len(args) != 2 {
 			return js.Undefined()
 		}
+		direction := 1
 		direction = args[1].Int()
 
-		buffer := getBuffer(args)
+		if buffer == nil {
+			buffer = getBuffer(args)
+		}
 
 		if buffer == nil || !isJPG(buffer) {
 			return js.Undefined()
@@ -29,6 +32,7 @@ func ImageRotate() js.Func {
 		return map[string]interface{}{
 			"type":   "image/jpeg",
 			"buffer": result,
+			// "finish": time.Now().UnixNano() / 1e6,
 		}
 	})
 }

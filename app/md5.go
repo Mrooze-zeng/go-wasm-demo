@@ -12,7 +12,8 @@ func GetMD5() js.Func {
 		if buffer == nil {
 			return js.Undefined()
 		}
-		// fmt.Println(isJPG(buffer))
-		return fmt.Sprintf("%x", md5.Sum(buffer))
+		return map[string]interface{}{
+			"md5": fmt.Sprintf("%x", md5.Sum(buffer)),
+		}
 	})
 }

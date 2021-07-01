@@ -1,20 +1,29 @@
 const getFileBuffer = function (callback = function () { }) {
-  const fileInput = document.getElementById("j-upload")
-  fileInput.addEventListener("change", function (e) {
+  const $fileInput = document.getElementById("j-upload")
+  const $btn = document.getElementById("j-md5-file")
+  const fileMd5Handler = function (file) {
+    const start = window.performance.now();
     const fileReader = new FileReader()
     fileReader.onload = function () {
       const worker = callback(new Uint8Array(this.result));
       const listener = function ({ data = {} }) {
         const { type, message } = data;
-        if (type === "getMd5") {
-          document.getElementById("j-result").innerHTML = `md5: ${message}`
-          console.log("md5:" + message)
+        if (type === "getMd5" && message) {
+          document.getElementById("j-result").innerHTML = `md5: ${message.md5}`
+          console.log(message)
+          console.log("耗时:", window.performance.now() - start, "毫秒")
           worker.removeEventListener("message", listener)
         }
       }
       worker.addEventListener("message", listener)
     }
-    fileReader.readAsArrayBuffer(this.files[0])
+    fileReader.readAsArrayBuffer(file)
+  }
+  $fileInput.addEventListener("change", function (e) {
+    fileMd5Handler(this.files[0])
+  })
+  $btn.addEventListener("click", function () {
+    $fileInput.files[0]&&fileMd5Handler($fileInput.files[0])
   })
 }
 
@@ -22,12 +31,14 @@ const getTextBuffer = function (callback = function () { }) {
   const $input = document.getElementById("j-text");
   const $btn = document.getElementById("j-md5-text")
   $btn.addEventListener("click", function () {
+    const start = window.performance.now();
     const worker = callback(new TextEncoder().encode($input.value));
     const listener = function ({ data = {} }) {
       const { type, message } = data;
-      if (type === "getMd5") {
-        document.getElementById("j-result").innerHTML = `md5: ${message}`
-        console.log("md5:" + message)
+      if (type === "getMd5" && message) {
+        document.getElementById("j-result").innerHTML = `md5: ${message.md5}`
+        console.log(message)
+        console.log("耗时:", window.performance.now() - start, "毫秒")
         worker.removeEventListener("message", listener)
       }
     }
@@ -59,6 +70,7 @@ const rotateImage = function (callback = function () { }) {
 
   $btn.addEventListener("click", async function () {
     const self = this;
+    const start = window.performance.now();
     const buffer = await getBuffer($img.src)
     const directions = [1, 3, 6, 8, 9]
     const direction = directions[Math.floor(Math.random() * directions.length)]
@@ -67,6 +79,7 @@ const rotateImage = function (callback = function () { }) {
     const listener = function ({ data = {} }) {
       const { type, message } = data;
       if (type === "imageRotate" && message) {
+        console.log("耗时:", window.performance.now() - start, "毫秒")
         URL.revokeObjectURL($preview.src)
         $preview.src = URL.createObjectURL(new Blob([message.buffer.buffer], { type: message.type }))
         $preview.onload = () => {
