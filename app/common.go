@@ -6,14 +6,14 @@ import (
 	"syscall/js"
 )
 
-func getBuffer(args []js.Value) (buffer []byte) {
+func getBuffer(args []js.Value) []byte {
 	uint8Array := js.Global().Get("Uint8Array")
 	if len(args) < 1 || !args[0].InstanceOf(uint8Array) {
 		return nil
 	}
 	fmt.Println("Receiving data........")
-	//todo 消耗大量时间
-	buffer = make([]byte, args[0].Get("length").Int())
+	//todo tinygo中消耗大量时间
+	buffer := make([]byte, args[0].Get("length").Int())
 	js.CopyBytesToGo(buffer, args[0])
 	return buffer
 }
