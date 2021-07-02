@@ -7,6 +7,9 @@ import (
 
 func main() {
 	js.Global().Set("getMd5", app.GetMD5())
-	js.Global().Set("imageRotate", app.ImageRotate())
+	js.Global().Set("imageRotate", make(map[string]interface{}))
+	imageRotate := app.ImageRotate()
+	js.Global().Get("imageRotate").Set("run", imageRotate["run"])
+	js.Global().Get("imageRotate").Set("release", imageRotate["release"])
 	select {}
 }

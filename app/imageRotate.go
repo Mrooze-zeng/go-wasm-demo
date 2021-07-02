@@ -6,35 +6,45 @@ import (
 	"syscall/js"
 )
 
-func ImageRotate() js.Func {
+func ImageRotate() map[string]js.Func {
 	var buffer []byte
-	return js.FuncOf(func(this js.Value, args []js.Value) interface{} {
-		if len(args) != 2 {
-			return js.Undefined()
-		}
-		direction := 1
-		direction = args[1].Int()
+	return map[string]js.Func{
+		"run": js.FuncOf(func(this js.Value, args []js.Value) interface{} {
+			if len(args) != 2 {
+				return js.Undefined()
+			}
+			direction := 1
+			direction = args[1].Int()
 
-		if buffer == nil {
-			buffer = getBuffer(args)
-		}
+			if buffer == nil {
+				buffer = getBuffer(args)
+			}
 
-		if buffer == nil || !isJPG(buffer) {
-			return js.Undefined()
-		}
-		b := rotate(buffer, byte(direction))
-		if b == nil {
-			return js.Undefined()
-		}
-		result := js.Global().Get("Uint8Array").New(len(b))
-		js.CopyBytesToJS(result, b)
-		fmt.Println("ok-----")
-		return map[string]interface{}{
-			"type":   "image/jpeg",
-			"buffer": result,
-			// "finish": time.Now().UnixNano() / 1e6,
-		}
-	})
+			if buffer == nil || !isJPG(buffer) {
+				return js.Undefined()
+			}
+			b := rotate(buffer, byte(direction))
+			if b == nil {
+				return js.Undefined()
+			}
+			result := js.Global().Get("Uint8Array").New(len(b))
+			js.CopyBytesToJS(result, b)
+			fmt.Println("ok-----")
+			return map[string]interface{}{
+				"type":   "image/jpeg",
+				"buffer": result,
+				// "finish": time.Now().UnixNano() / 1e6,
+			}
+		}),
+		"release": js.FuncOf(func(this js.Value, args []js.Value) interface{} {
+
+			if buffer != nil {
+				fmt.Println("Release.....")
+				buffer = nil
+			}
+			return nil
+		}),
+	}
 }
 
 func rotate(buffer []byte, direction byte) []byte {

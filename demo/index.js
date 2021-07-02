@@ -12,10 +12,9 @@ const getFileBuffer = function (callback = function () { }) {
           document.getElementById("j-result").innerHTML = `md5: ${message.md5}`
           console.log(message)
           console.log("耗时:", window.performance.now() - start, "毫秒")
-          worker.removeEventListener("message", listener)
         }
       }
-      worker.addEventListener("message", listener)
+      worker.addEventListener("message", listener,{once:true})
     }
     fileReader.readAsArrayBuffer(file)
   }
@@ -39,16 +38,16 @@ const getTextBuffer = function (callback = function () { }) {
         document.getElementById("j-result").innerHTML = `md5: ${message.md5}`
         console.log(message)
         console.log("耗时:", window.performance.now() - start, "毫秒")
-        worker.removeEventListener("message", listener)
       }
     }
-    worker.addEventListener("message", listener)
+    worker.addEventListener("message", listener,{once:true})
   })
 }
 
-const rotateImage = function (callback = function () { }) {
+const rotateImage = function (callback = function () { },release=function(){}) {
   const $img = document.getElementById("j-img")
   const $btn = document.getElementById("j-img-control")
+  const $release = document.getElementById("j-img-release")
   const $preview = document.createElement("img")
 
   $preview.width = 250
@@ -78,19 +77,19 @@ const rotateImage = function (callback = function () { }) {
     this.setAttribute("disabled", true)
     const listener = function ({ data = {} }) {
       const { type, message } = data;
-      if (type === "imageRotate" && message) {
+      if (type === "imageRotate.run" && message) {
         console.log("耗时:", window.performance.now() - start, "毫秒")
         URL.revokeObjectURL($preview.src)
         $preview.src = URL.createObjectURL(new Blob([message.buffer.buffer], { type: message.type }))
         $preview.onload = () => {
           self.removeAttribute("disabled")
-          worker.removeEventListener("message", listener)
         }
       }
     }
-    worker.addEventListener("message", listener)
+    worker.addEventListener("message", listener,{once:true})
     document.body.appendChild($preview)
   })
+  $release.addEventListener("click", release)
 }
 
 const worker = new Worker("worker/index.js");
@@ -106,6 +105,8 @@ getTextBuffer(function (buffer) {
 })
 
 rotateImage(function (buffer, direction) {
-  worker.postMessage({ type: "imageRotate", message: [buffer, direction] })
+  worker.postMessage({ type: "imageRotate.run", message: [buffer, direction] })
   return worker
+},function(){
+  worker.postMessage({type:"imageRotate.release"})
 })
