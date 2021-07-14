@@ -11,5 +11,7 @@ func main() {
 	imageRotate := app.ImageRotate()
 	js.Global().Get("imageRotate").Set("run", imageRotate["run"])
 	js.Global().Get("imageRotate").Set("release", imageRotate["release"])
+
+	js.Global().Set("getExcel", app.Excel())
 	select {}
 }
