@@ -32,7 +32,7 @@ func ImageRotate() map[string]js.Func {
 			fmt.Println("ok-----")
 			return map[string]interface{}{
 				"type":   "image/jpeg",
-				"buffer": result,
+				"data": result,
 				// "finish": time.Now().UnixNano() / 1e6,
 			}
 		}),

@@ -13,7 +13,8 @@ func GetMD5() js.Func {
 			return js.Undefined()
 		}
 		return map[string]interface{}{
-			"md5": fmt.Sprintf("%x", md5.Sum(buffer)),
+			"type": "md5",
+			"data": fmt.Sprintf("%x", md5.Sum(buffer)),
 		}
 	})
 }

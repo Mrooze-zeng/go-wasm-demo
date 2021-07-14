@@ -18,12 +18,19 @@ func Excel() js.Func {
 
 		f.SetActiveSheet(index)
 
-		buf, _ := f.WriteToBuffer()
+		buf, err := f.WriteToBuffer()
+
+		if err != nil {
+			return nil
+		}
 
 		dst := js.Global().Get("Uint8Array").New(len(buf.Bytes()))
 
 		js.CopyBytesToJS(dst, buf.Bytes())
 
-		return dst
+		return map[string]interface{}{
+			"type": "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+			"data": dst,
+		}
 	})
 }

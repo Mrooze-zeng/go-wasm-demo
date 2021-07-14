@@ -13,5 +13,7 @@ func main() {
 	js.Global().Get("imageRotate").Set("release", imageRotate["release"])
 
 	js.Global().Set("getExcel", app.Excel())
+
+	js.Global().Set("setCSV", app.Csv())
 	select {}
 }

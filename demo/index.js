@@ -9,7 +9,9 @@ const getFileBuffer = function (callback = function () {}) {
       const listener = function ({ data = {} }) {
         const { type, message } = data;
         if (type === "getMd5" && message) {
-          document.getElementById("j-result").innerHTML = `md5: ${message.md5}`;
+          document.getElementById(
+            "j-result",
+          ).innerHTML = `md5: ${message.data}`;
           console.log(message);
           console.log("耗时:", window.performance.now() - start, "毫秒");
         }
@@ -35,7 +37,7 @@ const getTextBuffer = function (callback = function () {}) {
     const listener = function ({ data = {} }) {
       const { type, message } = data;
       if (type === "getMd5" && message) {
-        document.getElementById("j-result").innerHTML = `md5: ${message.md5}`;
+        document.getElementById("j-result").innerHTML = `md5: ${message.data}`;
         console.log(message);
         console.log("耗时:", window.performance.now() - start, "毫秒");
       }
@@ -83,7 +85,7 @@ const rotateImage = function (
         console.log("耗时:", window.performance.now() - start, "毫秒");
         URL.revokeObjectURL($preview.src);
         $preview.src = URL.createObjectURL(
-          new Blob([message.buffer.buffer], { type: message.type }),
+          new Blob([message.data.buffer], { type: message.type }),
         );
         $preview.onload = () => {
           self.removeAttribute("disabled");
@@ -96,24 +98,47 @@ const rotateImage = function (
   $release.addEventListener("click", release);
 };
 
+const createDownloadLink = function (url = "", filename = "") {
+  const link = document.createElement("a");
+  link.href = url;
+  link.download = filename;
+  document.body.appendChild(link);
+  link.click();
+  link.remove();
+};
+
 const getExcel = function (callback = function () {}) {
   $btn = document.getElementById("j-excel");
   $btn.addEventListener("click", callback);
   const listener = function ({ data = {} }) {
     const { type, message } = data;
     if (type === "getExcel" && message) {
-      console.log(message.buffer);
       const url = URL.createObjectURL(
-        new Blob([message.buffer], {
-          type: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+        new Blob([message.data.buffer], {
+          type: message.type,
         }),
       );
-      const link = document.createElement("a");
-      link.href = url;
-      link.download = "test.xlsx";
-      document.body.appendChild(link);
-      link.click();
-      link.remove();
+      createDownloadLink(url, "test.xlsx");
+      URL.revokeObjectURL(url);
+    }
+  };
+  worker.addEventListener("message", listener, { once: true });
+};
+
+const getCSV = function (callback = function () {}) {
+  let $btn = document.getElementById("j-csv");
+  $btn.addEventListener("click", callback);
+  const listener = function ({ data = {} }) {
+    const { type, message } = data;
+    if (type === "setCSV" && message) {
+      console.log(message);
+      const url = URL.createObjectURL(
+        new Blob([message.data.buffer], {
+          type: message.type,
+        }),
+      );
+      createDownloadLink(url, "test.csv");
+      URL.revokeObjectURL(url);
     }
   };
   worker.addEventListener("message", listener, { once: true });
@@ -146,5 +171,10 @@ rotateImage(
 
 getExcel(function () {
   worker.postMessage({ type: "getExcel" });
+  return worker;
+});
+
+getCSV(function () {
+  worker.postMessage({ type: "setCSV" });
   return worker;
 });
