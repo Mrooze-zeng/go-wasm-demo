@@ -46,6 +46,18 @@ const getTextBuffer = function (callback = function () {}) {
   });
 };
 
+const getBufferCache = function () {
+  let buffer;
+  return async function (url) {
+    if (buffer) {
+      return buffer;
+    }
+    const res = await fetch(url);
+    buffer = await res.arrayBuffer();
+    return buffer;
+  };
+};
+
 const rotateImage = function (
   callback = function () {},
   release = function () {},
@@ -55,21 +67,9 @@ const rotateImage = function (
   const $release = document.getElementById("j-img-release");
   const $preview = document.createElement("img");
 
-  $preview.width = 250;
-
-  const getBufferCache = function () {
-    let buffer;
-    return async function (url) {
-      if (buffer) {
-        return buffer;
-      }
-      const res = await fetch(url);
-      buffer = await res.arrayBuffer();
-      return buffer;
-    };
-  };
-
   const getBuffer = getBufferCache();
+
+  $preview.width = 250;
 
   $btn.addEventListener("click", async function () {
     const self = this;
@@ -109,39 +109,73 @@ const createDownloadLink = function (url = "", filename = "") {
 
 const getExcel = function (callback = function () {}) {
   $btn = document.getElementById("j-excel");
-  $btn.addEventListener("click", callback);
-  const listener = function ({ data = {} }) {
-    const { type, message } = data;
-    if (type === "getExcel" && message) {
-      const url = URL.createObjectURL(
-        new Blob([message.data.buffer], {
-          type: message.type,
-        }),
-      );
-      createDownloadLink(url, "test.xlsx");
-      URL.revokeObjectURL(url);
-    }
-  };
-  worker.addEventListener("message", listener, { once: true });
+  $btn.addEventListener("click", function () {
+    const worker = callback();
+    const listener = function ({ data = {} }) {
+      const { type, message } = data;
+      if (type === "getExcel" && message) {
+        const url = URL.createObjectURL(
+          new Blob([message.data.buffer], {
+            type: message.type,
+          }),
+        );
+        createDownloadLink(url, "test.xlsx");
+        URL.revokeObjectURL(url);
+      }
+    };
+    worker.addEventListener("message", listener, { once: true });
+  });
 };
 
 const getCSV = function (callback = function () {}) {
   let $btn = document.getElementById("j-csv");
-  $btn.addEventListener("click", callback);
-  const listener = function ({ data = {} }) {
-    const { type, message } = data;
-    if (type === "setCSV" && message) {
-      console.log(message);
-      const url = URL.createObjectURL(
-        new Blob([message.data.buffer], {
-          type: message.type,
-        }),
-      );
-      createDownloadLink(url, "test.csv");
-      URL.revokeObjectURL(url);
-    }
-  };
-  worker.addEventListener("message", listener, { once: true });
+  $btn.addEventListener("click", function () {
+    const worker = callback();
+    const listener = function ({ data = {} }) {
+      const { type, message } = data;
+      if (type === "setCSV" && message) {
+        console.log(message);
+        const url = URL.createObjectURL(
+          new Blob([message.data.buffer], {
+            type: message.type,
+          }),
+        );
+        createDownloadLink(url, "test.csv");
+        URL.revokeObjectURL(url);
+      }
+    };
+    worker.addEventListener("message", listener, { once: true });
+  });
+};
+
+const getImageThumbnail = function (callback = function () {}) {
+  const $btn = document.getElementById("j-img-thumbnail");
+  const $img = document.getElementById("j-img");
+  const getBuffer = getBufferCache();
+
+  $btn.addEventListener("click", async function () {
+    const start = window.performance.now();
+    const buffer = await getBuffer($img.src);
+    const worker = callback(new Uint8Array(buffer));
+    const listener = function ({ data = {} }) {
+      const { type, message } = data;
+      if (type === "getImageThumbnail" && message) {
+        const url = URL.createObjectURL(
+          new Blob([message.data.buffer], {
+            type: message.type,
+          }),
+        );
+        const image = document.createElement("img");
+        image.src = url;
+        document.body.appendChild(image);
+        image.onload = function () {
+          URL.revokeObjectURL(url);
+          console.log("耗时:", window.performance.now() - start, "毫秒");
+        };
+      }
+    };
+    worker.addEventListener("message", listener, { once: true });
+  });
 };
 
 const worker = new Worker("worker/index.js");
@@ -176,5 +210,10 @@ getExcel(function () {
 
 getCSV(function () {
   worker.postMessage({ type: "setCSV" });
+  return worker;
+});
+
+getImageThumbnail(function (buffer) {
+  worker.postMessage({ type: "getImageThumbnail", message: [buffer] });
   return worker;
 });

@@ -11,9 +11,7 @@ func Csv() js.Func {
 		var buffer bytes.Buffer
 		w := csv.NewWriter(&buffer)
 
-		defer func() {
-			w.Flush()
-		}()
+		defer w.Flush()
 
 		data := [][]string{
 			{"1", "中国", "23"},
@@ -23,7 +21,11 @@ func Csv() js.Func {
 			{"5", "bb", "23"},
 		}
 
-		w.WriteAll(data)
+		err := w.WriteAll(data)
+
+		if err != nil {
+			return nil
+		}
 
 		dst := js.Global().Get("Uint8Array").New(len(buffer.Bytes()))
 
