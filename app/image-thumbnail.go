@@ -10,6 +10,7 @@ import (
 
 func ImageThumbnail() js.Func {
 	return js.FuncOf(func(this js.Value, args []js.Value) interface{} {
+		var res Result
 		buf := getBuffer(args)
 		r := bytes.NewReader(buf)
 		// img, _, err := image.Decode(r)
@@ -34,13 +35,7 @@ func ImageThumbnail() js.Func {
 			return nil
 		}
 
-		dst := js.Global().Get("Uint8Array").New(len(result.Bytes()))
-
-		js.CopyBytesToJS(dst, result.Bytes())
-
-		return map[string]interface{}{
-			"type": "image/jpeg",
-			"data": dst,
-		}
+		dst := exportDataToJS(result.Bytes())
+		return res.new("image/jpeg", dst)
 	})
 }

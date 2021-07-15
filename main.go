@@ -19,5 +19,14 @@ func main() {
 	js.Global().Set("setCSV", app.Csv())
 	// 生成图片缩略图
 	js.Global().Set("getImageThumbnail", app.ImageThumbnail())
+	// 处理视频文件
+	js.Global().Set("parseVideo", app.ParseVideo())
+
+	//gzip 解压
+	compressGzip := app.CompressGzip()
+	js.Global().Set("compress", make(map[string]interface{}))
+	js.Global().Get("compress").Set("gzip", compressGzip["gzip"])
+	js.Global().Get("compress").Set("ungzip", compressGzip["ungzip"])
+
 	select {}
 }

@@ -9,6 +9,8 @@ import (
 func Csv() js.Func {
 	return js.FuncOf(func(this js.Value, args []js.Value) interface{} {
 		var buffer bytes.Buffer
+		var res Result
+
 		w := csv.NewWriter(&buffer)
 
 		defer w.Flush()
@@ -27,13 +29,8 @@ func Csv() js.Func {
 			return nil
 		}
 
-		dst := js.Global().Get("Uint8Array").New(len(buffer.Bytes()))
+		dst := exportDataToJS(buffer.Bytes())
 
-		js.CopyBytesToJS(dst, buffer.Bytes())
-
-		return map[string]interface{}{
-			"type": "text/csv",
-			"data": dst,
-		}
+		return res.new("text/csv", dst)
 	})
 }

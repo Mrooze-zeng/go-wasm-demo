@@ -1,24 +1,19 @@
 const getFileBuffer = function (callback = function () {}) {
   const $fileInput = document.getElementById("j-upload");
   const $btn = document.getElementById("j-md5-file");
-  const fileMd5Handler = function (file) {
+  const fileMd5Handler = async function (file) {
     const start = window.performance.now();
-    const fileReader = new FileReader();
-    fileReader.onload = function () {
-      const worker = callback(new Uint8Array(this.result));
-      const listener = function ({ data = {} }) {
-        const { type, message } = data;
-        if (type === "getMd5" && message) {
-          document.getElementById(
-            "j-result",
-          ).innerHTML = `md5: ${message.data}`;
-          console.log(message);
-          console.log("耗时:", window.performance.now() - start, "毫秒");
-        }
-      };
-      worker.addEventListener("message", listener, { once: true });
+    const result = await fileReader(file);
+    const worker = callback(new Uint8Array(result));
+    const listener = function ({ data = {} }) {
+      const { type, message } = data;
+      if (type === "getMd5" && message) {
+        document.getElementById("j-result").innerHTML = `md5: ${message.data}`;
+        console.log(message);
+        console.log("耗时:", window.performance.now() - start, "毫秒");
+      }
     };
-    fileReader.readAsArrayBuffer(file);
+    worker.addEventListener("message", listener, { once: true });
   };
   $fileInput.addEventListener("change", function (e) {
     fileMd5Handler(this.files[0]);
@@ -43,6 +38,19 @@ const getTextBuffer = function (callback = function () {}) {
       }
     };
     worker.addEventListener("message", listener, { once: true });
+  });
+};
+
+const fileReader = function (file) {
+  return new Promise((resolve, reject) => {
+    if (!file) {
+      reject();
+    }
+    const fileReader = new FileReader();
+    fileReader.onload = function () {
+      resolve(this.result);
+    };
+    fileReader.readAsArrayBuffer(file);
   });
 };
 
@@ -178,6 +186,79 @@ const getImageThumbnail = function (callback = function () {}) {
   });
 };
 
+const parseVideo = function (callback = function () {}) {
+  const $btn = document.getElementById("j-video-btn");
+  const $video = document.getElementById("j-video");
+  $btn.addEventListener("click", async function () {
+    if ($video.files[0]) {
+      const result = await fileReader($video.files[0]);
+      const worker = callback(
+        URL.createObjectURL(
+          new Blob([result], {
+            type: $video.files[0].type,
+          }),
+        ),
+      );
+      const listener = function ({ data = {} }) {
+        const { type, message } = data;
+        if (type === "parseVideo" && message) {
+          console.log(message);
+        }
+      };
+      worker.addEventListener("message", listener, { once: true });
+    }
+  });
+};
+
+const gzipFile = function (callback = function () {}) {
+  const $btn = document.getElementById("j-gzip-file");
+  const $fileInput = document.getElementById("j-upload");
+
+  $btn.addEventListener("click", async function () {
+    const file = $fileInput.files[0];
+    if (file) {
+      const result = await fileReader(file);
+      const worker = callback(new Uint8Array(result), file.name);
+      const listener = function ({ data = {} }) {
+        const { type, message } = data;
+        if (type === "compress.gzip" && message) {
+          const url = URL.createObjectURL(
+            new Blob([message.data.buffer], {
+              type: message.type,
+            }),
+          );
+          createDownloadLink(url, `${file.name}.gz`);
+          URL.revokeObjectURL(url);
+        }
+      };
+      worker.addEventListener("message", listener, { once: true });
+    }
+  });
+};
+
+const ungzipFile = function (callback = function () {}) {
+  const $btn = document.getElementById("j-ungzip-file");
+  const $fileInput = document.getElementById("j-upload");
+
+  $btn.addEventListener("click", async function () {
+    const file = $fileInput.files[0];
+    console.log(file);
+    if (file) {
+      const result = await fileReader(file);
+      const worker = callback(new Uint8Array(result), file.name);
+      const listener = function ({ data = {} }) {
+        const { type, message } = data;
+        if (type === "compress.ungzip" && message) {
+          console.log(message);
+          const url = URL.createObjectURL(new Blob([message.data.buffer]));
+          createDownloadLink(url, message.name);
+        }
+      };
+      worker.addEventListener("message", listener, { once: true });
+    }
+  });
+};
+
 const worker = new Worker("worker/index.js");
 
 getFileBuffer(function (buffer) {
@@ -215,5 +296,25 @@ getCSV(function () {
 
 getImageThumbnail(function (buffer) {
   worker.postMessage({ type: "getImageThumbnail", message: [buffer] });
+  return worker;
+});
+
+parseVideo(function (url) {
+  console.log(url);
+  const video = document.createElement("video");
+  video.src = url;
+  video.controls = true;
+  document.body.appendChild(video);
+  worker.postMessage({ type: "parseVideo", message: [url] });
+  return worker;
+});
+
+gzipFile(function (buffer, name) {
+  worker.postMessage({ type: "compress.gzip", message: [buffer, name] });
+  return worker;
+});
+
+ungzipFile(function (buffer, name) {
+  worker.postMessage({ type: "compress.ungzip", message: [buffer, name] });
   return worker;
 });

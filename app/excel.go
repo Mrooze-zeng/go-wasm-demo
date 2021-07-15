@@ -8,6 +8,7 @@ import (
 
 func Excel() js.Func {
 	return js.FuncOf(func(this js.Value, args []js.Value) interface{} {
+		var res Result
 
 		f := excelize.NewFile()
 
@@ -24,13 +25,8 @@ func Excel() js.Func {
 			return nil
 		}
 
-		dst := js.Global().Get("Uint8Array").New(len(buf.Bytes()))
+		dst := exportDataToJS(buf.Bytes())
 
-		js.CopyBytesToJS(dst, buf.Bytes())
-
-		return map[string]interface{}{
-			"type": "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
-			"data": dst,
-		}
+		return res.new("application/vnd.openxmlformats-officedocument.spreadsheetml.sheet", dst)
 	})
 }

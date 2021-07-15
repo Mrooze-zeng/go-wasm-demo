@@ -10,6 +10,7 @@ func ImageRotate() map[string]js.Func {
 	var buffer []byte
 	return map[string]js.Func{
 		"run": js.FuncOf(func(this js.Value, args []js.Value) interface{} {
+			var res Result
 			if len(args) != 2 {
 				return js.Undefined()
 			}
@@ -27,14 +28,9 @@ func ImageRotate() map[string]js.Func {
 			if b == nil {
 				return js.Undefined()
 			}
-			result := js.Global().Get("Uint8Array").New(len(b))
-			js.CopyBytesToJS(result, b)
+			result := exportDataToJS(b)
 			fmt.Println("ok-----")
-			return map[string]interface{}{
-				"type":   "image/jpeg",
-				"data": result,
-				// "finish": time.Now().UnixNano() / 1e6,
-			}
+			return res.new("image/jpeg", result)
 		}),
 		"release": js.FuncOf(func(this js.Value, args []js.Value) interface{} {
 
