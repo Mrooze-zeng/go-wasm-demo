@@ -259,6 +259,31 @@ const ungzipFile = function (callback = function () {}) {
   });
 };
 
+const sliceUpload = function(callback=function(){}){
+  const $fileInput = document.getElementById("j-file");
+  const $btn = document.getElementById("j-file-btn");
+  $btn.addEventListener("click", async function () {
+    const file = $fileInput.files[0];
+    console.log(file);
+    if (file) {
+      const result = await fileReader(file);
+      const worker = callback(new Uint8Array(result),{
+        buffer:new Uint8Array(result),
+        mintype:file.type,
+        name:file.name,
+        chunkSize:1024*1024
+      },"http://127.0.0.1:8080/upload");
+      const listener = function ({ data = {} }) {
+        const { type, message } = data;
+        if (type === "sliceUpload" && message) {
+          console.log(message);
+        }
+      };
+      worker.addEventListener("message", listener, { once: true });
+    }
+  })
+}
+
 const worker = new Worker("worker/index.js");
 
 getFileBuffer(function (buffer) {
@@ -314,7 +339,12 @@ gzipFile(function (buffer, name) {
   return worker;
 });
 
-ungzipFile(function (buffer, name) {
+ungzipFile(function (buffer, name,) {
   worker.postMessage({ type: "compress.ungzip", message: [buffer, name] });
   return worker;
 });
+
+sliceUpload(function(buffer,options,apiUrl){
+  worker.postMessage({ type: "sliceUpload", message: [buffer, options,apiUrl] });
+  return worker;
+})

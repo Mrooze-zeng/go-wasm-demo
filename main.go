@@ -28,5 +28,8 @@ func main() {
 	js.Global().Get("compress").Set("gzip", compressGzip["gzip"])
 	js.Global().Get("compress").Set("ungzip", compressGzip["ungzip"])
 
+	//切片上传
+	js.Global().Set("sliceUpload", app.SliceUpload())
+
 	select {}
 }
