@@ -8,6 +8,7 @@ import (
 	"net/http"
 	"strconv"
 	"strings"
+	"sync"
 	"syscall/js"
 )
 
@@ -47,9 +48,8 @@ func SliceDownload() js.Func {
 
 			total, firstChunk, output := getChunk(url, 0, firstChunkSize)
 
-			done := make(chan struct{}, 1)
-
 			var buffer []byte
+			var wg sync.WaitGroup
 
 			result := make(map[int][]byte)
 			result[0] = firstChunk
@@ -68,25 +68,26 @@ func SliceDownload() js.Func {
 					end = total
 					isBreak = true
 				}
+
+				wg.Add(1)
+
 				go func(start, end, index int) {
 					_, chunk, _ := getChunk(url, start, end)
 					result[index] = chunk
-					if len(result) == length {
-						defer close(done)
-						done <- struct{}{}
-					}
+					defer wg.Done()
 				}(start+1, end, i)
 				if isBreak {
 					break
 				}
 			}
 
-			for range done {
-				for i := 0; i < len(result); i++ {
+			wg.Wait()
 
-					buffer = append(buffer, result[i]...)
-				}
+			for i := 0; i < len(result); i++ {
+
+				buffer = append(buffer, result[i]...)
 			}
+
 			md5Code := md5.Sum(buffer)
 
 			output.add("data", exportDataToJS(buffer))
