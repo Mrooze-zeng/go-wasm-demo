@@ -20,8 +20,6 @@ type ChunkUploader struct {
 	md5     string
 	name    string
 	mintype string
-	chunks  chan map[int][]byte
-	dones   map[int]string
 }
 
 func NewChunkUploader(apiURL string, buffer []byte, name string, mintype string) *ChunkUploader {
@@ -32,32 +30,17 @@ func NewChunkUploader(apiURL string, buffer []byte, name string, mintype string)
 		md5:     hex.EncodeToString(md5Code[:]),
 		name:    name,
 		mintype: mintype,
-		chunks:  make(chan map[int][]byte),
-		dones:   make(map[int]string),
 	}
 }
 
-func (c *ChunkUploader) setChunks(chunkLen, chunkSize int) {
-	defer func() {
-		close(c.chunks)
-	}()
+func (c *ChunkUploader) uploadChunks(chunkLen, chunkSize int) {
 	for i := 1; i <= chunkLen; i++ {
 		start := (i - 1) * chunkSize
-		end := i * chunkSize
+		end := start + chunkSize
 		if end > len(c.buffer) {
 			end = len(c.buffer)
 		}
-		c.chunks <- map[int][]byte{
-			i: c.buffer[start:end],
-		}
-	}
-}
-
-func (c *ChunkUploader) uploadAll() {
-	for chunkMap := range c.chunks {
-		for i, chunk := range chunkMap {
-			go c.uploadChunk(chunk, i)
-		}
+		go c.uploadChunk(c.buffer[start:end], i)
 	}
 }
 
@@ -94,10 +77,12 @@ func (c *ChunkUploader) uploadChunk(chunk []byte, index int) {
 
 func SliceUpload() js.Func {
 	return js.FuncOf(func(this js.Value, args []js.Value) interface{} {
+
 		s := time.Now().UnixNano() / 1e6
 		defer func() {
 			fmt.Println(time.Now().UnixNano()/1e6 - s)
 		}()
+
 		options := args[1].JSValue()
 		apiURL := args[2].JSValue().String()
 		buffer := getBuffer(args)
@@ -111,9 +96,7 @@ func SliceUpload() js.Func {
 
 		uploader := NewChunkUploader(apiURL, buffer, name, mintype)
 
-		go uploader.setChunks(chunkLen, chunkSize)
-
-		uploader.uploadAll()
+		go uploader.uploadChunks(chunkLen, chunkSize)
 
 		return nil
 	})
