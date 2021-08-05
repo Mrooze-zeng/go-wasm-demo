@@ -2,7 +2,7 @@ package app
 
 import (
 	"crypto/md5"
-	"fmt"
+	"encoding/hex"
 	"syscall/js"
 )
 
@@ -13,6 +13,8 @@ func GetMD5() js.Func {
 		if buffer == nil {
 			return js.Undefined()
 		}
-		return res.new("md5", fmt.Sprintf("%x", md5.Sum(buffer)))
+		md5Code := md5.Sum(buffer)
+		return res.new("md5", hex.EncodeToString(md5Code[:]))
+		// return res.new("md5", fmt.Sprintf("%x", md5.Sum(buffer)))
 	})
 }

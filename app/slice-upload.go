@@ -3,11 +3,13 @@ package app
 import (
 	"bytes"
 	"crypto/md5"
+	"encoding/hex"
 	"fmt"
 	"io"
 	"io/ioutil"
 	"mime/multipart"
 	"net/http"
+	"strconv"
 	"syscall/js"
 	"time"
 )
@@ -23,10 +25,11 @@ type ChunkUploader struct {
 }
 
 func NewChunkUploader(apiURL string, buffer []byte, name string, mintype string) *ChunkUploader {
+	md5Code := md5.Sum(buffer)
 	return &ChunkUploader{
 		apiURL:  apiURL,
 		buffer:  buffer,
-		md5:     fmt.Sprintf("%x", md5.Sum(buffer)),
+		md5:     hex.EncodeToString(md5Code[:]),
 		name:    name,
 		mintype: mintype,
 		chunks:  make(chan map[int][]byte),
@@ -53,44 +56,22 @@ func (c *ChunkUploader) setChunks(chunkLen, chunkSize int) {
 func (c *ChunkUploader) uploadAll() {
 	for chunkMap := range c.chunks {
 		for i, chunk := range chunkMap {
-			// _, ok := c.dones[i]
-			// if !ok {
 			go c.uploadChunk(chunk, i)
-			// } else {
-			// 	fmt.Println("It has been upload....")
-			// }
 		}
 	}
 }
 
-func (c *ChunkUploader) setDone(chunkMd5 string, index int) {
-	c.dones[index] = chunkMd5
-}
-
-func (c *ChunkUploader) storeUploadedChunk() {
-	localStorage := js.Global().Get("sessionStorage")
-	// data := sessionStorage.Call("getItem", c.md5)
-	fmt.Println(localStorage)
-}
-
 func (c *ChunkUploader) uploadChunk(chunk []byte, index int) {
 
-	chunkMd5 := fmt.Sprintf("%x", md5.Sum(chunk))
+	md5Code := md5.Sum(chunk)
 
 	body := &bytes.Buffer{}
 	writer := multipart.NewWriter(body)
 
-	fileField, _ := writer.CreateFormField("file")
-	fileField.Write([]byte(c.md5))
-
-	lengthField, _ := writer.CreateFormField("size")
-	lengthField.Write([]byte(fmt.Sprint(len(c.buffer))))
-
-	md5Field, _ := writer.CreateFormField("md5")
-	md5Field.Write([]byte(chunkMd5))
-
-	indexField, _ := writer.CreateFormField("index")
-	indexField.Write([]byte(fmt.Sprint(index)))
+	writer.WriteField("file", c.md5)
+	writer.WriteField("size", strconv.Itoa(len(c.buffer)))
+	writer.WriteField("md5", hex.EncodeToString(md5Code[:]))
+	writer.WriteField("index", strconv.Itoa(index))
 
 	chunkField, _ := writer.CreateFormFile("binary", "binary")
 	io.Copy(chunkField, bytes.NewReader(chunk))
@@ -102,8 +83,7 @@ func (c *ChunkUploader) uploadChunk(chunk []byte, index int) {
 	res, _ := http.DefaultClient.Do(req)
 	data, _ := ioutil.ReadAll(res.Body)
 	res.Body.Close()
-	// c.setDone(chunkMd5, index)
-	fmt.Println(string(data), c.dones)
+	fmt.Println(string(data))
 }
 
 func SliceUpload() js.Func {
@@ -124,8 +104,6 @@ func SliceUpload() js.Func {
 		}
 
 		uploader := NewChunkUploader(apiURL, buffer, name, mintype)
-
-		// uploader.storeUploadedChunk()
 
 		go uploader.setChunks(chunkLen, chunkSize)
 
