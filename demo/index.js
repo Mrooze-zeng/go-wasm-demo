@@ -286,16 +286,27 @@ const sliceUpload = function(callback=function(){}){
 
 const sliceDownload = function(callback=function(){}){
   const $btn = document.getElementById("j-down-btn");
+  const $directBtn = document.getElementById("j-down-direct-btn");
+  const url = "http://127.0.0.1:5000/tmp/cow.jpg?"+Date.now()
   $btn.addEventListener("click", async function () {
-    // const worker = callback(location.origin+'/cow.jpg',1024*1024)
-    const worker = callback("http://127.0.0.1:5000/tmp/dump.zip",1024*1024)
+    const start = window.performance.now();
+    const worker = callback(url,1024*1024)
     const listener = function ({ data = {} }) {
       const { type, message } = data;
       if (type === "sliceDownload" && message) {
         console.log(message);
+        console.log("耗时:", window.performance.now() - start, "毫秒");
       }
     };
     worker.addEventListener("message", listener, { once: true });
+  })
+
+  $directBtn.addEventListener("click",async function(){
+    const start = window.performance.now();
+    const res =  await fetch(url)
+    const buffer = await res.blob()
+    console.log(buffer)
+    console.log("耗时:", window.performance.now() - start, "毫秒");
   })
 }
 

@@ -11,39 +11,25 @@ import (
 	"syscall/js"
 )
 
-func getChunk(url string, begin, end int, stop bool, chunks []byte, output chan Result) error {
-	var isFinal bool
+func getChunk(url string, start, end int) (int, []byte, *Result) {
 
 	req, _ := http.NewRequest("GET", url, nil)
-	req.Header.Set("Range", setRange(begin, end))
+	req.Header.Set("Range", setRange(start, end))
 	res, _ := http.DefaultClient.Do(req)
-
-	buf, _ := ioutil.ReadAll(res.Body)
+	chunk, _ := ioutil.ReadAll(res.Body)
 
 	contentRange := res.Header.Get("Content-Range")
 	contentRangeSlice := strings.Split(contentRange, "/")
 	total, _ := strconv.Atoi(contentRangeSlice[1])
-	next := 2*end - begin
-	if next >= total {
-		next = total
-		isFinal = true
-	}
 
-	chunks = append(chunks, buf...)
+	fmt.Println(contentRange)
 
-	if stop {
-		fmt.Println("end....")
-		md5Code := md5.Sum(chunks)
-		fmt.Println(hex.EncodeToString(md5Code[:]))
-		var result Result
-		disposition := res.Header.Get("Content-Disposition")
-		result.new(res.Header.Get("Content-Type"), exportDataToJS(chunks))
-		result.add("name", disposition[strings.Index(disposition, "\"")+1:strings.LastIndex(disposition, "\"")])
-		output <- result
-		return nil
-	}
-	go getChunk(url, end+1, next, isFinal, chunks, output)
-	return nil
+	var result Result
+	disposition := res.Header.Get("Content-Disposition")
+	result.new(res.Header.Get("Content-Type"), "")
+	result.add("name", disposition[strings.Index(disposition, "\"")+1:strings.LastIndex(disposition, "\"")])
+
+	return total, chunk, &result
 }
 
 func setRange(begin, end int) string {
@@ -54,19 +40,60 @@ func setRange(begin, end int) string {
 
 func SliceDownload() js.Func {
 	return js.FuncOf(func(this js.Value, args []js.Value) interface{} {
+		url := args[0].JSValue().String()
+		size := args[1].JSValue().Int()
+		firstChunkSize := 15
 		return MyPromise(func() (res map[string]interface{}, err error) {
 
-			url := args[0].JSValue().String()
-			size := args[1].JSValue().Int()
+			total, firstChunk, output := getChunk(url, 0, firstChunkSize)
 
-			var chunks []byte
-			output := make(chan Result, 1)
+			done := make(chan struct{}, 1)
 
-			go getChunk(url, 0, size, false, chunks, output)
+			var buffer []byte
 
-			o := <-output
+			result := make(map[int][]byte)
+			result[0] = firstChunk
 
-			return o.Value, err
+			isBreak := false
+
+			length := (total-firstChunkSize)/size + 1
+			if (total-firstChunkSize)%size > 0 {
+				length++
+			}
+
+			for i := 1; i < length; i++ {
+				start := firstChunkSize + (i-1)*size
+				end := start + size
+				if end >= total {
+					end = total
+					isBreak = true
+				}
+				go func(start, end, index int) {
+					_, chunk, _ := getChunk(url, start, end)
+					result[index] = chunk
+					if len(result) == length {
+						defer close(done)
+						done <- struct{}{}
+					}
+				}(start+1, end, i)
+				if isBreak {
+					break
+				}
+			}
+
+			for range done {
+				for i := 0; i < len(result); i++ {
+
+					buffer = append(buffer, result[i]...)
+				}
+			}
+			md5Code := md5.Sum(buffer)
+
+			output.add("data", exportDataToJS(buffer))
+			output.add("md5", hex.EncodeToString(md5Code[:]))
+			output.add("size", len(buffer))
+
+			return output.Value, err
 		})
 	})
 }
