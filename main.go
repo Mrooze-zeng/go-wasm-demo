@@ -31,5 +31,8 @@ func main() {
 	//切片上传
 	js.Global().Set("sliceUpload", app.SliceUpload())
 
+	//切片下载
+	js.Global().Set("sliceDownload", app.SliceDownload())
+
 	select {}
 }

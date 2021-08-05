@@ -284,6 +284,21 @@ const sliceUpload = function(callback=function(){}){
   })
 }
 
+const sliceDownload = function(callback=function(){}){
+  const $btn = document.getElementById("j-down-btn");
+  $btn.addEventListener("click", async function () {
+    // const worker = callback(location.origin+'/cow.jpg',1024*1024)
+    const worker = callback("http://127.0.0.1:5000/tmp/dump.zip",1024*1024)
+    const listener = function ({ data = {} }) {
+      const { type, message } = data;
+      if (type === "sliceDownload" && message) {
+        console.log(message);
+      }
+    };
+    worker.addEventListener("message", listener, { once: true });
+  })
+}
+
 const worker = new Worker("worker/index.js");
 
 getFileBuffer(function (buffer) {
@@ -346,5 +361,10 @@ ungzipFile(function (buffer, name,) {
 
 sliceUpload(function(buffer,options,apiUrl){
   worker.postMessage({ type: "sliceUpload", message: [buffer, options,apiUrl] });
+  return worker;
+})
+
+sliceDownload(function(url,size){
+  worker.postMessage({ type: "sliceDownload", message: [url,size] });
   return worker;
 })

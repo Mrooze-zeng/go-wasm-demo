@@ -73,6 +73,8 @@ func (c *ChunkUploader) uploadChunk(chunk []byte, index int) {
 	writer.WriteField("md5", hex.EncodeToString(md5Code[:]))
 	writer.WriteField("index", strconv.Itoa(index))
 
+	fmt.Println(hex.EncodeToString(md5Code[:]))
+
 	chunkField, _ := writer.CreateFormFile("binary", "binary")
 	io.Copy(chunkField, bytes.NewReader(chunk))
 
@@ -80,7 +82,11 @@ func (c *ChunkUploader) uploadChunk(chunk []byte, index int) {
 	req, _ := http.NewRequest("POST", c.apiURL, body)
 
 	req.Header.Set("Content-Type", writer.FormDataContentType())
-	res, _ := http.DefaultClient.Do(req)
+	res, err := http.DefaultClient.Do(req)
+	if err != nil {
+		fmt.Println(err)
+		return
+	}
 	data, _ := ioutil.ReadAll(res.Body)
 	res.Body.Close()
 	fmt.Println(string(data))

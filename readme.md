@@ -25,6 +25,10 @@
 
 	//切片上传
 	js.Global().Set("sliceUpload", app.SliceUpload())
+
+    //切片下载
+	js.Global().Set("sliceDownload", app.SliceDownload())
+
 ```
 
 
@@ -35,6 +39,7 @@
 - 生成图片缩略图
 - 压缩上传文件和解压上传文件
 - 前端文件切片上传
+- 前端文件切片下载
 
 ### 已知问题：
 
