@@ -291,7 +291,7 @@ const sliceUpload = function (callback = function () {}) {
 const sliceDownload = function (callback = function () {}) {
   const $btn = document.getElementById("j-down-btn");
   const $directBtn = document.getElementById("j-down-direct-btn");
-  const url = `${location.href}tmp/cow.jpg?${Date.now()}`;
+  const url = `${location.href}cow.jpg?${Date.now()}`;
   $btn.addEventListener("click", async function () {
     const start = window.performance.now();
     const worker = callback(url, 1024 * 100);
