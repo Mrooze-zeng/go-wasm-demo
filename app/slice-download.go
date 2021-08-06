@@ -102,7 +102,9 @@ func SliceDownload() js.Func {
 
 			disposition := baseHeaders.Get("Content-Disposition")
 			output.new(baseHeaders.Get("Content-Type"), "")
-			output.add("name", disposition[strings.Index(disposition, "\"")+1:strings.LastIndex(disposition, "\"")])
+			if disposition != "" {
+				output.add("name", disposition[strings.Index(disposition, "\"")+1:strings.LastIndex(disposition, "\"")])
+			}
 
 			output.add("data", exportDataToJS(buffer))
 			output.add("md5", hex.EncodeToString(md5Code[:]))
