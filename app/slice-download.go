@@ -102,7 +102,7 @@ func SliceDownload() js.Func {
 
 			disposition := baseHeaders.Get("Content-Disposition")
 			output.new(baseHeaders.Get("Content-Type"), "")
-			if disposition != "" {
+			if len(disposition) != 0 {
 				output.add("name", disposition[strings.Index(disposition, "\"")+1:strings.LastIndex(disposition, "\"")])
 			}
 
