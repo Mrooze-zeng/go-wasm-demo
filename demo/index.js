@@ -259,7 +259,7 @@ const ungzipFile = function (callback = function () {}) {
   });
 };
 
-const sliceUpload = function(callback=function(){}){
+const sliceUpload = function (callback = function () {}) {
   const $fileInput = document.getElementById("j-file");
   const $btn = document.getElementById("j-file-btn");
   $btn.addEventListener("click", async function () {
@@ -267,12 +267,16 @@ const sliceUpload = function(callback=function(){}){
     console.log(file);
     if (file) {
       const result = await fileReader(file);
-      const worker = callback(new Uint8Array(result),{
-        buffer:new Uint8Array(result),
-        mintype:file.type,
-        name:file.name,
-        chunkSize:1024*1024
-      },"http://127.0.0.1:8080/upload");
+      const worker = callback(
+        new Uint8Array(result),
+        {
+          buffer: new Uint8Array(result),
+          mintype: file.type,
+          name: file.name,
+          chunkSize: 1024 * 1024,
+        },
+        "http://127.0.0.1:8080/upload",
+      );
       const listener = function ({ data = {} }) {
         const { type, message } = data;
         if (type === "sliceUpload" && message) {
@@ -281,16 +285,16 @@ const sliceUpload = function(callback=function(){}){
       };
       worker.addEventListener("message", listener, { once: true });
     }
-  })
-}
+  });
+};
 
-const sliceDownload = function(callback=function(){}){
+const sliceDownload = function (callback = function () {}) {
   const $btn = document.getElementById("j-down-btn");
   const $directBtn = document.getElementById("j-down-direct-btn");
-  const url = "http://127.0.0.1:5000/tmp/cow.jpg?"+Date.now()
+  const url = "http://127.0.0.1:5000/tmp/cow.jpg?" + Date.now();
   $btn.addEventListener("click", async function () {
     const start = window.performance.now();
-    const worker = callback(url,1024*1024)
+    const worker = callback(url, 1024 * 100);
     const listener = function ({ data = {} }) {
       const { type, message } = data;
       if (type === "sliceDownload" && message) {
@@ -299,16 +303,16 @@ const sliceDownload = function(callback=function(){}){
       }
     };
     worker.addEventListener("message", listener, { once: true });
-  })
+  });
 
-  $directBtn.addEventListener("click",async function(){
+  $directBtn.addEventListener("click", async function () {
     const start = window.performance.now();
-    const res =  await fetch(url)
-    const buffer = await res.blob()
-    console.log(buffer)
+    const res = await fetch(url);
+    const buffer = await res.blob();
+    console.log(buffer);
     console.log("耗时:", window.performance.now() - start, "毫秒");
-  })
-}
+  });
+};
 
 const worker = new Worker("worker/index.js");
 
@@ -365,17 +369,20 @@ gzipFile(function (buffer, name) {
   return worker;
 });
 
-ungzipFile(function (buffer, name,) {
+ungzipFile(function (buffer, name) {
   worker.postMessage({ type: "compress.ungzip", message: [buffer, name] });
   return worker;
 });
 
-sliceUpload(function(buffer,options,apiUrl){
-  worker.postMessage({ type: "sliceUpload", message: [buffer, options,apiUrl] });
+sliceUpload(function (buffer, options, apiUrl) {
+  worker.postMessage({
+    type: "sliceUpload",
+    message: [buffer, options, apiUrl],
+  });
   return worker;
-})
+});
 
-sliceDownload(function(url,size){
-  worker.postMessage({ type: "sliceDownload", message: [url,size] });
+sliceDownload(function (url, size) {
+  worker.postMessage({ type: "sliceDownload", message: [url, size] });
   return worker;
-})
+});
