@@ -42,6 +42,41 @@
 - 前端文件切片上传
 - 前端文件切片下载
 
+### 常用命令
+
+#### 普通打包
+
+```shell
+  make
+```
+
+#### tinygo 打包
+
+```shell
+  make build-tiny
+```
+
+- 注：由于部分包不支持，打包会失败，只能用普通打包的方式
+
+#### 启动本地文件上传服务
+
+```shell
+  make serve
+```
+
+- server/main.go
+  用于测试切片上传文件是否完整，上传地址为http://127.0.0.1:8080/upload
+
+#### 网页预览
+
+```shell
+  cd demo && npx serve -s .
+  或者
+  cd demo && php -S 127.0.0.1:5000
+```
+
+- 需要安装 nodejs 或者 PHP
+
 ### 已知问题：
 
 - 在 Tinygo 中(用 go 不会出现内存大量占用的情况，且耗时比 tinygo 的更少，但打包后的文件很大)

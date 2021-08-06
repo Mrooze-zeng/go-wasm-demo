@@ -39,11 +39,17 @@ func (r *Result) new(dataType string, data interface{}) map[string]interface{} {
 }
 
 func (r *Result) add(name string, value interface{}) map[string]interface{} {
+	if r.Value == nil {
+		r.Value = make(map[string]interface{})
+	}
 	r.Value[name] = value
 	return r.Value
 }
 
 func (r *Result) remove(name string) map[string]interface{} {
+	if r.Value == nil {
+		r.Value = make(map[string]interface{})
+	}
 	delete(r.Value, name)
 	return r.Value
 }
