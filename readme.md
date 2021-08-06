@@ -1,6 +1,8 @@
 # go wasm demo 学习
 
-```go 
+**[预览地址](https://mrooze-zeng.github.io/go-wasm-demo/demo/)**
+
+```go
   // 文件md5
 	js.Global().Set("getMd5", app.GetMD5())
 	// 随机旋转图片
@@ -30,7 +32,6 @@
 	js.Global().Set("sliceDownload", app.SliceDownload())
 
 ```
-
 
 - 用 go md5 包在 web 前端生成文件或者字符的 MD5
 
