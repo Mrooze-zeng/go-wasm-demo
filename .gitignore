@@ -1,2 +1,5 @@
 *.DS_Store
 demo/tmp/
+
+demo/worker/app.wasm
+demo/worker/wasm_exec.js
