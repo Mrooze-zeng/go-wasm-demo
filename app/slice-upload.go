@@ -33,6 +33,10 @@ func NewChunkUploader(apiURL string, buffer []byte, name string, mintype string)
 	}
 }
 
+func (c *ChunkUploader) getChunksInfo() {
+
+}
+
 func (c *ChunkUploader) uploadChunks(chunkLen, chunkSize int) {
 	for i := 1; i <= chunkLen; i++ {
 		start := (i - 1) * chunkSize

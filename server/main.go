@@ -7,28 +7,36 @@ import (
 	"io/ioutil"
 	"net/http"
 	"strconv"
+	"sync"
 )
 
-type FileCollection struct {
+type FileChunks struct {
 	md5    string
 	chunks map[int][]byte
 }
 
-func NewFileCollection(md5 string) *FileCollection {
-	return &FileCollection{
+func NewFileChunks(md5 string) *FileChunks {
+	return &FileChunks{
 		md5:    md5,
 		chunks: make(map[int][]byte),
 	}
 }
 
-func (f *FileCollection) add(chunk []byte, index int) {
+func (f *FileChunks) add(chunk []byte, index int) {
 	if f.chunks == nil {
 		f.chunks = make(map[int][]byte)
 	}
-	f.chunks[index] = chunk
+	if !f.has(index) {
+		f.chunks[index] = chunk
+	}
 }
 
-func (f *FileCollection) concat() []byte {
+func (f *FileChunks) has(index int) bool {
+	_, ok := f.chunks[index]
+	return ok
+}
+
+func (f *FileChunks) concat() []byte {
 	var res []byte
 	for i := 0; i < len(f.chunks); i++ {
 		res = append(res, f.chunks[i+1]...)
@@ -36,7 +44,7 @@ func (f *FileCollection) concat() []byte {
 	return res
 }
 
-func (f *FileCollection) isComplete(size int) bool {
+func (f *FileChunks) isComplete(size int) bool {
 	total := 0
 	for _, c := range f.chunks {
 		total += len(c)
@@ -44,32 +52,34 @@ func (f *FileCollection) isComplete(size int) bool {
 	return total == size
 }
 
-type TempCollection struct {
-	files map[string]FileCollection
+type FileStore struct {
+	mu    sync.Mutex
+	files map[string]FileChunks
 }
 
-func NewTempCollection() *TempCollection {
-	return &TempCollection{
-		files: make(map[string]FileCollection),
+func NewFileStore() *FileStore {
+	return &FileStore{
+		mu:    sync.Mutex{},
+		files: make(map[string]FileChunks),
 	}
 }
 
-func (t *TempCollection) add(md5 string, chunk []byte, index int) {
+func (t *FileStore) add(md5 string, chunk []byte, index int) {
 	_, ok := t.files[md5]
 	if !ok {
-		t.files[md5] = *NewFileCollection(md5)
+		t.files[md5] = *NewFileChunks(md5)
 	}
 	fc := t.files[md5]
 	fc.add(chunk, index)
 }
-func (t *TempCollection) remove(md5 string) {
+func (t *FileStore) remove(md5 string) {
 	_, ok := t.files[md5]
 	if ok {
 		delete(t.files, md5)
 	}
 }
 
-var TC = NewTempCollection()
+var fileStore = NewFileStore()
 
 func cors(f http.HandlerFunc) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
@@ -96,7 +106,11 @@ func indexHandler(w http.ResponseWriter, r *http.Request) {
 }
 
 func uploadHandler(w http.ResponseWriter, r *http.Request) {
-	r.ParseMultipartForm(10 << 20)
+	err := r.ParseMultipartForm(10 << 20)
+	if err != nil {
+		fmt.Fprintf(w, "Hello World!!")
+		return
+	}
 	file, _, err := r.FormFile("binary")
 	if err != nil {
 		fmt.Println("Error retrieving the file", err)
@@ -112,20 +126,23 @@ func uploadHandler(w http.ResponseWriter, r *http.Request) {
 	chunkIndexStr := r.FormValue("index")
 	chunkIndex, _ := strconv.Atoi(chunkIndexStr)
 
-	TC.add(fileMd5, b, chunkIndex)
+	// fileStore.mu.Lock()
+	// defer fileStore.mu.Unlock()
 
-	fc := TC.files[fileMd5]
+	fileStore.add(fileMd5, b, chunkIndex)
+
+	fc := fileStore.files[fileMd5]
 
 	if fc.isComplete(size) {
-		defer TC.remove(fileMd5)
+		defer fileStore.remove(fileMd5)
 		buf := fc.concat()
 		md5String := getMd5String(buf)
-		fmt.Fprintf(w, "Received file md5:%s-----Send file md5:%s", md5String, fileMd5)
+		fmt.Fprintf(w, "Received file md5:%s-----Send file md5:%s----%s", md5String, fileMd5, chunkIndexStr)
 		return
 	}
 
 	md5String := getMd5String(b)
-	fmt.Fprintf(w, "Received chunk md5:%s-----Send file md5:%s", md5String, fileMd5)
+	fmt.Fprintf(w, "Received chunk md5:%s-----Send file md5:%s----%s", md5String, fileMd5, chunkIndexStr)
 }
 
 func main() {

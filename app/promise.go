@@ -5,7 +5,7 @@ import "syscall/js"
 func MyPromise(fn func() (res map[string]interface{}, err error)) js.Value {
 	var handler js.Func
 	handler = js.FuncOf(func(this js.Value, args []js.Value) interface{} {
-		handler.Release()
+		defer handler.Release()
 		resolve := func(value interface{}) {
 			args[0].Invoke(value)
 		}
