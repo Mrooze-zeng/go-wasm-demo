@@ -20,4 +20,4 @@ jobs:
 
     - name: Run
       run: |
-        echo hello world
+        make
