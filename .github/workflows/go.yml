@@ -11,13 +11,20 @@ jobs:
   build:
     runs-on: ubuntu-latest
     steps:
-    - uses: actions/checkout@master
+      - uses: AutoModality/action-clean@v1
+      - uses: actions/checkout@master
 
-    - name: Set up Go
-      uses: actions/setup-go@master
-      with:
-        go-version: 1.16
+      - name: Set up Go
+        uses: actions/setup-go@master
+        with:
+          go-version: 1.17
 
-    - name: Run
-      run: |
-        make
+      - name: Run
+        run: |
+          make
+      - name: Deploy 🚀
+        uses: JamesIves/github-pages-deploy-action@4.1.4
+        with:
+          branch: gh-pages # The branch the action should deploy to.
+          folder: demo # The folder the action should deploy.
+          clean: true
