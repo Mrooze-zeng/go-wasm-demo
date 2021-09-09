@@ -1,6 +1,6 @@
 # go wasm demo 学习
 
-**[预览地址](https://mrooze-zeng.github.io/go-wasm-demo/demo/)**
+**[预览地址](https://mrooze-zeng.github.io/go-wasm-demo/)**
 
 ```go
   // 文件md5
